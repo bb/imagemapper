@@ -6,12 +6,12 @@ chrome.extension.onRequest.addListener(
         var overlays = queryElements(".imagemaphighlightoverlay");
         if (overlays.length) {
             queryElements(".imagemaphighlightoverlay").map(function(el) {el.parentNode.removeChild(el);});
-            console.log("Imagemap highlighting removed");
+            console.log("IMAGEMAPPER highlighting removed");
         }
         else {
           var imagemaps = queryElements("img[usemap]:not(.transparent)").map(function (e) { return new ImageMap(e); });
-          console.log("Found " + imagemaps.length + " imagemaps and highlighted them. Tap the bookmarklet again to remove highlights.");
-          console.log("Please note: When resizing the page, you may need to reload imagemaps-debugger. Same for images maps which were hidden during initialization etc. ");
+          console.log("IMAGEMAPPER Found " + imagemaps.length + " imagemaps and highlighted them. Tap the bookmarklet again to remove highlights.");
+          console.log("IMAGEMAPPER Please note: When resizing the page, you may need to reload imagemaps-debugger. Same for images maps which were hidden during initialization etc. ");
         }
     }
 );
@@ -24,8 +24,8 @@ var ImageMap = (function () {
     function ImageMap(imagemap) {
         var _this = this;
         this.image = imagemap;
-        var mapName = this.image.getAttribute("usemap").substring(1);
-        this.areas = queryElements("map[name=" + mapName + "] > area");
+        this.mapName = this.image.getAttribute("usemap").substring(1);
+        this.areas = queryElements("map[name=" + this.mapName + "] > area");
         this.image.insertAdjacentHTML("afterend", "<div class=\"imagemaphighlightoverlay " + this.image.getAttribute("class") + "\" style=\"position: absolute;background-color:transparent;\"></div>");
         var e = this.image.nextElementSibling;
         var imgComputedStyle = getComputedStyle(this.image);
@@ -53,15 +53,53 @@ var ImageMap = (function () {
             switch (area.getAttribute("shape")) {
                 case "rect":
                     var _b = area.getAttribute("coords").split(",").map(trimparseFloat), x1 = _b[0], y1 = _b[1], x2 = _b[2], y2 = _b[3];
-                    p.rect(x1, y1, x2 - x1, y2 - y1).attr({ fill: "#ff0000", "fill-opacity": 0.5, stroke: "none" });
+                    var editorial_issue = [];
+                    if (x2 == x1) {
+                      x2 += 10;
+                      editorial_issue.push("x1 = x2 = " + x1);
+                    }
+                    if (y2 == y1) {
+                      y2 += 10;
+                      editorial_issue.push("y1 = y2 = " + y1);
+                    }
+                    if (x2 < x1) {
+                      var tmpx = x2;
+                      x2 = x1;
+                      x1 = tmpx;
+                      editorial_issue.push("x2 < x1: " + x1 + "<" + x2);
+                    }
+                    if (y2 < y1) {
+                      var tmpy = y2;
+                      y2 = y1;
+                      y1 = tmpy;
+                      editorial_issue.push("y2 < y1: " + y1 + "<" + y2);
+                    }
+                    var elem = p.rect(x1, y1, x2 - x1, y2 - y1).attr({ fill: "#ff0000", "fill-opacity": 0.5, stroke: "none", style: editorial_issue.length === 0 ? "" : "stroke-width:3;stroke:rgb(255,0,0)"});
+                    var title = "";
+                    var href = area.getAttribute('href');
+                    if (href && href.length > 0) {
+                      title += ("href="+href);
+                    }
+                    var alt = area.getAttribute('alt');
+                    if (alt && alt.length > 0) {
+                      title += ("alt="+alt);
+                    }
+                    if (editorial_issue.length > 0) {
+                      editorial_issue.unshift("IMAGEMAPPER found an issue in your rect, making the rect invisible: ");
+                      console.log.apply(console, editorial_issue);
+                      title = editorial_issue.join(" ") + " " + title;
+                    }
+                    elem.innerHTML = '<title>' + title + '</title>';
+                    title = null;
+                    elem = null;
                     break;
                 case "circle":
                     var _c = area.getAttribute("coords").split(",").map(trimparseFloat), x = _c[0], y = _c[1], r = _c[2];
                     p.circle(x, y, r).attr({ fill: "#00ff00", "fill-opacity": 0.5, stroke: "none" });
                     break;
                 case "poly":
-                    var _d = area.getAttribute("coords").split(",").map(trimparseFloat), x1 = _d[0], y1 = _d[1], coords = _d.slice(2);
-                    var poly = "M" + x1 + "," + y1;
+                    var _d = area.getAttribute("coords").split(",").map(trimparseFloat), px1 = _d[0], py1 = _d[1], coords = _d.slice(2);
+                    var poly = "M" + px1 + "," + py1;
                     for (var i = 0; i <= coords.length - 2; i++) {
                         poly += "L" + coords[i] + "," + coords[i + 1];
                         i++;
@@ -71,7 +109,7 @@ var ImageMap = (function () {
                     break;
             }
         }
-        console.log("finished drawing " + this.areas.length + " areas on image map");
+        console.log("IMAGEMAPPER finished drawing " + this.areas.length + " areas on image map " + this.mapName );
     };
     return ImageMap;
 })();
@@ -101,6 +139,7 @@ var MiniSvg = (function () {
             for (var a in attributes) {
                 this.setAttribute(a, attributes[a]);
             }
+            return e;
         };
         e.attr(attributes);
         return e;

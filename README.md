@@ -23,6 +23,16 @@ When you visit a website which contains html image maps, a small icon will appea
 * circle areas are green
 * poly areas are blue
 
+## Changelog
+
+### Version 0.0.4 (2015-11-06)
+
++ add some detection for rect areas with invalid coords.
+
+### Version 0.0.3 (2015-07-28)
+
++ initial public release
+
 ## Known issues
 
 * Highlights are not updated when the dimensions of the image map change. You need to remove the highlights and add them again.
